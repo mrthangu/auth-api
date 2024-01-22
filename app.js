@@ -2,7 +2,7 @@ import express from "express";
 import { config as configDotenv } from "dotenv";
 import cors from "cors";
 import { connectDb } from "./config/connectDb.js";
-import UserRouter from "./routes/User.js";
+import AuthRouter from "./routes/Auth.js";
 
 //dotenv Config
 configDotenv();
@@ -26,7 +26,5 @@ connectDb(db_url);
 //Server Creating
 app.listen(port, () => console.log(`Server running on ${port}`));
 
-
-//Routes 
-
-app.use('/auth', UserRouter)
+//Routes
+app.use("/auth", AuthRouter);

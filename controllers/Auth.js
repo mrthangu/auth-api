@@ -2,6 +2,7 @@ import UserModel from "../models/User.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
+// User_Register
 export const Register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
@@ -9,16 +10,16 @@ export const Register = async (req, res) => {
     //getting existing user from db
     const existingUser = await UserModel.findOne({ email: email });
 
-    //Checking the email exist in db and throwing error
+    //Checking_the_email_exist_in_db_and_throwing_error
     if (existingUser) {
       res
         .status(409)
         .json({ status: "failure", message: "Email alreday exist" });
     }
 
-    //Creating new user
+    //Creating_new_user
     if (name && email && password && !existingUser) {
-      //Hasing password
+      //Hasing_password
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
 
@@ -28,13 +29,24 @@ export const Register = async (req, res) => {
         password: hashedPassword,
       });
       await newUser.save();
-      res.status(201).json({ status: "success", message: newUser });
+      const saved_user = UserModel.findOne({ email: email });
+      //Generating JWT
+      const token = jwt.sign(
+        { userId: saved_user._id },
+        process.env.JWT_SECRET_KEY,
+        { expiresIn: "7d" }
+      );
+
+      res
+        .status(201)
+        .json({ status: "success", message: newUser, token: token });
     }
   } catch (error) {
     res.status(500).json(error);
   }
 };
 
+//User_Login
 export const Login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -53,9 +65,18 @@ export const Login = async (req, res) => {
     }
 
     if (existingUser.email === email && isMatch) {
-      return res
-        .status(200)
-        .json({ status: "success", message: "user found successfully " });
+      //Generate JWT
+      const token = jwt.sign(
+        { userId: existingUser._id },
+        process.env.JWT_SECRET_KEY,
+        { expiresIn: "7d" }
+      );
+
+      return res.status(200).json({
+        status: "success",
+        message: "user found successfully ",
+        token: token,
+      });
     }
   } catch (error) {
     return res.status(500).json(error);
