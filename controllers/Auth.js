@@ -65,7 +65,7 @@ export const Login = async (req, res) => {
     }
 
     if (existingUser.email === email && isMatch) {
-      //Generate JWT
+      //Generate_JWT
       const token = jwt.sign(
         { userId: existingUser._id },
         process.env.JWT_SECRET_KEY,
@@ -82,3 +82,86 @@ export const Login = async (req, res) => {
     return res.status(500).json(error);
   }
 };
+
+//Change_Passwprd_of_User
+export const ChangeUserPassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    if (password) {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+      await UserModel.findByIdAndUpdate(req.user._id, {
+        $set: { password: hashedPassword },
+      });
+      res.status(200).json({ status: "Success", message: "Password changed " });
+    }
+  } catch (error) {
+    res.status(500).json({ error: "something went wrong" });
+  }
+};
+
+//Logged User
+export const loggedUser = (req, res) => {
+  res.send({ user: req.user });
+};
+
+//ResetnPasswordsEmailSending
+export const sendUserPasswordResetEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (email) {
+      const user = await UserModel.findOne({ email: email });
+      if (user) {
+        const secret = user._id + process.env.JWT_SECRET_KEY;
+        const token = jwt.sign({ userId: user._id }, secret, {
+          expiresIn: "15m",
+        });
+        const link = `http://localhost:5000/auth/reset/${user._id}/${token}`;
+        console.log(link);
+        res.send({
+          status: "success",
+          message: "Sent email to reset ur password... Pls check!!!",
+        });
+      } else {
+        res.send({ status: "failed", message: "Email not authorised" });
+      }
+    } else {
+      res.send({ status: "failed", message: "Email is required" });
+    }
+  } catch (error) {
+    res.status(500).json(error);
+  }
+};
+
+//REsetPassword
+export const resetUserPassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    const { id, token } = req.params;
+
+    const user = await UserModel.findById(id);
+    const new_secret = user._id + process.env.JWT_SECRET_KEY;
+    try {
+      jwt.verify(token, new_secret);
+
+      if (password) {
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
+        await UserModel.findByIdAndUpdate(user._id, {
+          $set: { password: hashedPassword },
+        });
+        console.log(password)
+        res.send({status: "success", message: "password reset succesffully "})
+      } else {
+        res.send({
+          status: "failed",
+          message: "password required",
+        });
+      }
+    } catch (error) {}
+  } catch (error) {
+    res.status(500).json(error);
+  }
+};
+//--------Using nodemailer will update later 
